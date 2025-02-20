@@ -1,0 +1,11 @@
+app_name: App Name
+environment: development
+debug: true
+port: 8080
+postgres:
+  host: localhost
+  port: 5432
+  username: admin
+  password: password
+  database: db_name
+jwt: secret

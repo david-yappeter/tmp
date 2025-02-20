@@ -1,0 +1,13 @@
+app_name: App Name
+environment: development
+debug: true
+port: 8080
+cors_allowed_origins:
+  - "*"
+postgres:
+  host: localhost
+  port: 5432
+  username: postgres
+  password: changeme
+  database: nexmedis
+jwt: secret
