@@ -21,7 +21,7 @@ func (a *AuthApi) Login() gin.HandlerFunc {
 			return
 		}
 
-		token, clientError, err := a.authUseCase.Login(ctx, request)
+		token, clientError, err := a.authUseCase.Login(ctx.Request.Context(), request)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, err)
 			return
@@ -43,7 +43,7 @@ func (a *AuthApi) Register() gin.HandlerFunc {
 			return
 		}
 
-		token, clientError, err := a.authUseCase.Register(ctx, request)
+		token, clientError, err := a.authUseCase.Register(ctx.Request.Context(), request)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, err)
 			return

@@ -4,24 +4,25 @@ import (
 	"myapp/delivery/dto_request"
 	"myapp/delivery/dto_response"
 	"myapp/use_case"
+	"myapp/util"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-type AuthApi struct {
-	authUseCase use_case.AuthUseCase
+type ProductApi struct {
+	productUseCase use_case.ProductUseCase
 }
 
-func (a *AuthApi) Login() gin.HandlerFunc {
+func (a *ProductApi) Fetch() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var request dto_request.AuthLoginRequest
+		var request dto_request.ProductFetchRequest
 		if err := ctx.ShouldBindBodyWithJSON(&request); err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"error": translateBindErr(err)})
 			return
 		}
 
-		token, clientError, err := a.authUseCase.Login(ctx, request)
+		products, total, clientError, err := a.productUseCase.Fetch(ctx.Request.Context(), request)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, err)
 			return
@@ -31,19 +32,26 @@ func (a *AuthApi) Login() gin.HandlerFunc {
 			return
 		}
 
-		ctx.JSON(http.StatusOK, dto_response.NewAuthTokenResponse(*token))
+		ctx.JSON(http.StatusOK, dto_response.PaginationResponse{
+			Page:  request.Page,
+			Limit: request.Limit,
+			Total: total,
+			Nodes: util.ConvertArray(products, dto_response.NewProductResponse),
+		})
 	}
 }
 
-func (a *AuthApi) Register() gin.HandlerFunc {
+func (a *ProductApi) Get() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var request dto_request.AuthRegisterRequest
-		if err := ctx.ShouldBindBodyWithJSON(&request); err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": translateBindErr(err)})
+		var request dto_request.ProductGetRequest
+		request.Id = ctx.Param("id")
+
+		if !util.IsUuid(request.Id) {
+			ctx.JSON(http.StatusBadRequest, dto_response.NewBadRequestErrorResponse("not a valid uuid"))
 			return
 		}
 
-		token, clientError, err := a.authUseCase.Register(ctx, request)
+		product, clientError, err := a.productUseCase.Get(ctx.Request.Context(), request)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, err)
 			return
@@ -53,16 +61,16 @@ func (a *AuthApi) Register() gin.HandlerFunc {
 			return
 		}
 
-		ctx.JSON(http.StatusOK, dto_response.NewAuthTokenResponse(*token))
+		ctx.JSON(http.StatusOK, dto_response.NewProductResponse(*product))
 	}
 }
 
-func RegisterAuthApi(router gin.IRouter, useCaseManager use_case.UseCaseManager) {
-	api := AuthApi{
-		authUseCase: useCaseManager.AuthUseCase(),
+func RegisterProductApi(router gin.IRouter, useCaseManager use_case.UseCaseManager) {
+	api := ProductApi{
+		productUseCase: useCaseManager.ProductUseCase(),
 	}
-	routerGroup := router.Group("/auth")
+	routerGroup := router.Group("/products")
 
-	routerGroup.POST("/login", api.Login())
-	routerGroup.POST("/register", api.Register())
+	routerGroup.POST("/filter", api.Fetch())
+	routerGroup.GET("/:id", api.Get())
 }

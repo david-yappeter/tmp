@@ -10,6 +10,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type InfrastructureManager interface {
@@ -31,7 +32,9 @@ func NewInfrastructureManager(config global.YamlConfig) InfrastructureManager {
 	sqlDB := NewPostgresSqlDB(postgresConfig, config.IsDebug)
 	gormDB, err := gorm.Open(postgres.New(postgres.Config{
 		Conn: sqlDB,
-	}))
+	}), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
 	if err != nil {
 		panic(err)
 	}

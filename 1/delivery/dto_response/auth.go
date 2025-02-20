@@ -18,8 +18,3 @@ func NewAuthTokenResponse(token model.Token) AuthTokenResponse {
 		TokenType:            token.TokenType,
 	}
 }
-
-func NewAuthTokenResponseP(token model.Token) *AuthTokenResponse {
-	r := NewAuthTokenResponse(token)
-	return &r
-}

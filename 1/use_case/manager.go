@@ -8,20 +8,32 @@ import (
 
 type UseCaseManager interface {
 	AuthUseCase() AuthUseCase
+	CartUseCase() CartUseCase
 	ProductUseCase() ProductUseCase
+	TransactionUseCase() TransactionUseCase
 }
 
 type useCaseManager struct {
-	authUseCase    AuthUseCase
-	productUseCase ProductUseCase
+	authUseCase        AuthUseCase
+	cartUseCase        CartUseCase
+	productUseCase     ProductUseCase
+	transactionUseCase TransactionUseCase
 }
 
 func (u *useCaseManager) AuthUseCase() AuthUseCase {
 	return u.authUseCase
 }
 
+func (u *useCaseManager) CartUseCase() CartUseCase {
+	return u.cartUseCase
+}
+
 func (u *useCaseManager) ProductUseCase() ProductUseCase {
 	return u.productUseCase
+}
+
+func (u *useCaseManager) TransactionUseCase() TransactionUseCase {
+	return u.transactionUseCase
 }
 
 func NewUseCaseManager(
@@ -34,7 +46,13 @@ func NewUseCaseManager(
 			repositoryManager,
 			jwt,
 		),
+		cartUseCase: NewCartUseCase(
+			repositoryManager,
+		),
 		productUseCase: NewProductUseCase(
+			repositoryManager,
+		),
+		transactionUseCase: NewTransactionUseCase(
 			repositoryManager,
 		),
 	}

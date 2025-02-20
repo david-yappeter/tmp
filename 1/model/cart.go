@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 const CartTableName = "carts"
 
@@ -11,8 +13,16 @@ type Cart struct {
 	Qty       int       `gorm:"column:qty"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`
+
+	Product *Product `gorm:"foreignKey:product_id"`
 }
 
 func (u *Cart) TableName() string {
 	return CartTableName
+}
+
+type CartQueryOption struct {
+	UserId *string
+
+	LoadProduct bool
 }

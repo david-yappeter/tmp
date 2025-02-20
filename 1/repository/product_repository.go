@@ -54,7 +54,7 @@ func (r *productRepository) Count(ctx context.Context, options ...model.ProductQ
 	stmt := r.gormDB.WithContext(ctx).Model(&model.Product{})
 
 	if option.Search != nil {
-		stmt = stmt.Where("name ILIKE '?'", "%"+*option.Search+"%")
+		stmt = stmt.Where("name ILIKE ?", "%"+*option.Search+"%")
 	}
 
 	result := stmt.Count(&count)
@@ -76,10 +76,10 @@ func (r *productRepository) Fetch(ctx context.Context, options ...model.ProductQ
 	stmt := r.gormDB.WithContext(ctx)
 
 	if option.Search != nil {
-		stmt = stmt.Where("name ILIKE '?'", "%"+*option.Search+"%")
+		stmt = stmt.Where("name ILIKE ?", "%"+*option.Search+"%")
 	}
 
-	applyPagination(stmt, option.Limit, option.Page)
+	stmt = applyPagination(stmt, option.Limit, option.Page)
 
 	result := stmt.Find(&products)
 

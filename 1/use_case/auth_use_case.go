@@ -16,6 +16,7 @@ import (
 type AuthUseCase interface {
 	Login(ctx context.Context, request dto_request.AuthLoginRequest) (*model.Token, *dto_response.ErrorResponse, error)
 	Register(ctx context.Context, request dto_request.AuthRegisterRequest) (*model.Token, *dto_response.ErrorResponse, error)
+	Parse(ctx context.Context, token string) (*model.User, *dto_response.ErrorResponse, error)
 }
 
 type authUseCase struct {
@@ -119,4 +120,29 @@ func (u *authUseCase) Register(ctx context.Context, request dto_request.AuthRegi
 		ExpiredAt:   jwtToken.ExpiredAt,
 		TokenType:   jwtToken.TokenType,
 	}, nil, nil
+}
+
+func (u *authUseCase) Parse(ctx context.Context, token string) (*model.User, *dto_response.ErrorResponse, error) {
+	payload, err := u.jwt.Parse(token)
+	if err != nil {
+		return nil, dto_response.NewBadRequestErrorResponseP("not authenticated"), nil
+	}
+
+	var (
+		userId = payload.UserId
+	)
+
+	if payload.ExpiredAt.Before(time.Now()) {
+		return nil, dto_response.NewBadRequestErrorResponseP("not authenticated"), nil
+	}
+
+	user, err := u.repositoryManager.UserRepository().Get(ctx, userId)
+	if err != nil {
+		return nil, nil, err
+	}
+	if user == nil {
+		return nil, dto_response.NewBadRequestErrorResponseP("not authenticated"), nil
+	}
+
+	return user, nil, nil
 }

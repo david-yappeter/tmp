@@ -1,12 +1,13 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"myapp/delivery/dto_response"
+	"myapp/delivery/middleware"
 	"myapp/global"
 	"myapp/manager"
+	"myapp/model"
 	"myapp/use_case"
 	"net/http"
 	"time"
@@ -18,20 +19,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
-
-type apiContext struct {
-	ginCtx *gin.Context
-}
-
-func newApiContext(ctx *gin.Context) apiContext {
-	return apiContext{
-		ginCtx: ctx,
-	}
-}
-
-func (a *apiContext) context() context.Context {
-	return a.ginCtx.Request.Context()
-}
 
 func NewRouter(container *manager.Container) *gin.Engine {
 	allowedHeaders := []string{
@@ -83,13 +70,16 @@ func NewRouter(container *manager.Container) *gin.Engine {
 }
 
 func registerMiddlewares(router gin.IRouter, container *manager.Container) {
-	// useCaseManager := container.UseCaseManager()
+	useCaseManager := container.UseCaseManager()
 
-	// middleware.JWTHandler(router, useCaseManager.AuthUseCase())
+	middleware.JWTHandler(router, useCaseManager.AuthUseCase())
 }
 
 func registerRoutes(router gin.IRouter, useCaseManager use_case.UseCaseManager) {
 	RegisterAuthApi(router, useCaseManager)
+	RegisterCartApi(router, useCaseManager)
+	RegisterProductApi(router, useCaseManager)
+	RegisterTransactionApi(router, useCaseManager)
 }
 
 func translateBindErr(err error) dto_response.ErrorResponse {
@@ -127,4 +117,18 @@ func translateBindErr(err error) dto_response.ErrorResponse {
 	}
 
 	return r
+}
+
+func Authorize(fn func(ctx *gin.Context)) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+
+		// check if user is authenticated
+		_, err := model.GetUserCtx(ctx.Request.Context())
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		fn(ctx)
+	}
 }

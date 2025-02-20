@@ -13,12 +13,17 @@ type CartRepository interface {
 	InsertMany(ctx context.Context, carts []model.Cart) error
 
 	// read
-	Count(ctx context.Context) (int, error)
-	Fetch(ctx context.Context) ([]model.Cart, error)
+	Count(ctx context.Context, options ...model.CartQueryOption) (int, error)
+	Fetch(ctx context.Context, options ...model.CartQueryOption) ([]model.Cart, error)
 	Get(ctx context.Context, id string) (*model.Cart, error)
+	GetByUserIdAndProductId(ctx context.Context, userId string, productId string) (*model.Cart, error)
+
+	// update
+	Update(ctx context.Context, cart *model.Cart) error
 
 	// delete
 	Delete(ctx context.Context, cart *model.Cart) error
+	DeleteMany(ctx context.Context, carts []model.Cart) error
 }
 
 type cartRepository struct {
@@ -47,9 +52,20 @@ func (r *cartRepository) InsertMany(ctx context.Context, carts []model.Cart) err
 	return result.Error
 }
 
-func (r *cartRepository) Count(ctx context.Context) (int, error) {
+func (r *cartRepository) Count(ctx context.Context, options ...model.CartQueryOption) (int, error) {
+	option := model.CartQueryOption{}
+	if len(options) > 0 {
+		option = options[0]
+	}
+
 	var count int64
-	result := r.gormDB.WithContext(ctx).Model(&model.Cart{}).Count(&count)
+	stmt := r.gormDB.WithContext(ctx).Model(&model.Cart{})
+
+	if option.UserId != nil {
+		stmt = stmt.Where("user_id = ?", *option.UserId)
+	}
+
+	result := stmt.Count(&count)
 
 	if result.Error != nil {
 		return 0, result.Error
@@ -58,9 +74,24 @@ func (r *cartRepository) Count(ctx context.Context) (int, error) {
 	return int(count), nil
 }
 
-func (r *cartRepository) Fetch(ctx context.Context) ([]model.Cart, error) {
+func (r *cartRepository) Fetch(ctx context.Context, options ...model.CartQueryOption) ([]model.Cart, error) {
+	option := model.CartQueryOption{}
+	if len(options) > 0 {
+		option = options[0]
+	}
+
 	var carts []model.Cart
-	result := r.gormDB.WithContext(ctx).Find(&carts)
+	stmt := r.gormDB.WithContext(ctx)
+
+	if option.UserId != nil {
+		stmt = stmt.Where("user_id = ?", *option.UserId)
+	}
+
+	if option.LoadProduct {
+		stmt = stmt.Preload("Product")
+	}
+
+	result := stmt.Find(&carts)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -80,7 +111,28 @@ func (r *cartRepository) Get(ctx context.Context, id string) (*model.Cart, error
 	return &cart, nil
 }
 
+func (r *cartRepository) GetByUserIdAndProductId(ctx context.Context, userId string, productId string) (*model.Cart, error) {
+	var cart model.Cart
+	result := r.gormDB.WithContext(ctx).First(&cart, "user_id = ? AND product_id = ?", userId, productId)
+
+	if result.Error != nil {
+		return nil, returnIfErr(result.Error, gorm.ErrRecordNotFound)
+	}
+
+	return &cart, nil
+}
+
+func (r *cartRepository) Update(ctx context.Context, cart *model.Cart) error {
+	result := r.gormDB.WithContext(ctx).Updates(cart)
+	return result.Error
+}
+
 func (r *cartRepository) Delete(ctx context.Context, cart *model.Cart) error {
 	result := r.gormDB.WithContext(ctx).Delete(cart)
+	return result.Error
+}
+
+func (r *cartRepository) DeleteMany(ctx context.Context, carts []model.Cart) error {
+	result := r.gormDB.WithContext(ctx).Delete(carts)
 	return result.Error
 }
